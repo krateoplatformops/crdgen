@@ -29,6 +29,7 @@ type Options struct {
 type Result struct {
 	Manifest []byte
 	Digest   string
+	GVK      schema.GroupVersionKind
 	Err      error
 }
 
@@ -38,6 +39,8 @@ func Generate(ctx context.Context, opts Options) (res Result) {
 		res.Err = err
 		return
 	}
+
+	res.GVK = opts.GVK
 
 	nfo := coder.Resource{
 		Group:      opts.GVK.Group,
