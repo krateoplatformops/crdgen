@@ -3,13 +3,14 @@ package coder
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/dave/jennifer/jen"
 	"github.com/krateoplatformops/crdgen/internal/strutil"
 )
 
 func GenerateManaged(workdir string, res *Resource) error {
-	srcdir, err := createSourceDir(workdir, res)
+	path, err := makeDirs(workdir, "apis", strings.ToLower(res.Kind), normalizeVersion(res.Version))
 	if err != nil {
 		return err
 	}
@@ -23,7 +24,7 @@ func GenerateManaged(workdir string, res *Resource) error {
 	g.Add(generateDeletionPolicyFuncs(res))
 	g.Line()
 
-	src, err := os.Create(filepath.Join(srcdir, "managed.go"))
+	src, err := os.Create(filepath.Join(path, "managed.go"))
 	if err != nil {
 		return err
 	}

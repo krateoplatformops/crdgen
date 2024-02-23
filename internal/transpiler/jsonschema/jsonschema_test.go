@@ -119,28 +119,61 @@ func TestThatDefaultsCanBeParsed(t *testing.T) {
 	}
 }
 
+func TestThatObjectArrayCanBeParsed(t *testing.T) {
+	s := `{
+        "$schema": "http://json-schema.org/schema#",
+        "title": "root",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+               
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                       "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "value"
+                  ]
+                }
+            }
+        }
+    }`
+	_, err := jsonschema.Parse([]byte(s))
+	if err != nil {
+		t.Fatal("It was not possible to unmarshal the schema:", err)
+	}
+
+}
+
 const (
 	sample = `
 {
-	"$id": "https://example.com/person.schema.json",
-	"$schema": "https://json-schema.org/draft/2020-12/schema",
-	"title": "Person",
-	"type": "object",
-	"properties": {
-		"firstName": {
-			"type": "string",
-			"description": "The person's first name."
-		},
-		"lastName": {
-			"type": "string",
-			"description": "The person's last name."
-		},
-		"age": {
-			"description": "Age in years which must be equal to or greater than zero.",
-			"type": "integer",
-			"minimum": 10
-		}
-	}
+    "$id": "https://example.com/person.schema.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Person",
+    "type": "object",
+    "properties": {
+        "firstName": {
+            "type": "string",
+            "description": "The person's first name."
+        },
+        "lastName": {
+            "type": "string",
+            "description": "The person's last name."
+        },
+        "age": {
+            "description": "Age in years which must be equal to or greater than zero.",
+            "type": "integer",
+            "minimum": 10
+        }
+    }
 }
 `
 )

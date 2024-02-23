@@ -2,8 +2,10 @@ package coder
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/dave/jennifer/jen"
 	"github.com/krateoplatformops/crdgen/internal/strutil"
@@ -16,12 +18,7 @@ const (
 	pkgControllerRuntimeSchemeAlias = "scheme"
 )
 
-func CreateGroupVersionInfoDotGo(workdir string, res *Resource) error {
-	srcdir, err := createSourceDir(workdir, res)
-	if err != nil {
-		return err
-	}
-
+func GroupVersionInfo(res *Resource, wri io.Writer) error {
 	g := jen.NewFile(normalizeVersion(res.Version))
 	g.PackageComment("+kubebuilder:object:generate=true")
 	g.PackageComment(fmt.Sprintf("+groupName=%s", res.Group))
@@ -39,13 +36,22 @@ func CreateGroupVersionInfoDotGo(workdir string, res *Resource) error {
 	g.Add(generateInitFunc(res))
 	g.Add(jen.Line())
 
-	src, err := os.Create(filepath.Join(srcdir, "groupversion_info.go"))
+	return g.Render(wri)
+}
+
+func CreateGroupVersionInfoDotGo(workdir string, res *Resource) error {
+	path, err := makeDirs(workdir, "apis", strings.ToLower(res.Kind), normalizeVersion(res.Version))
+	if err != nil {
+		return err
+	}
+
+	src, err := os.Create(filepath.Join(path, "groupversion_info.go"))
 	if err != nil {
 		return err
 	}
 	defer src.Close()
 
-	return g.Render(src)
+	return GroupVersionInfo(res, src)
 }
 
 func generateConsts(res *Resource) jen.Code {

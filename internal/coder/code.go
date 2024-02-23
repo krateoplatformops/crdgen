@@ -7,11 +7,13 @@ import (
 )
 
 type Resource struct {
-	Group      string
-	Version    string
-	Kind       string
-	Categories []string
-	Schema     []byte
+	Group        string
+	Version      string
+	Kind         string
+	Categories   []string
+	SpecSchema   []byte
+	StatusSchema []byte
+	Managed      bool
 }
 
 type Options struct {
@@ -40,6 +42,18 @@ func Do(res *Resource, cfg Options) error {
 		return err
 	}
 
+	if res.Managed {
+		err := GenerateManaged(cfg.Workdir, res)
+		if err != nil {
+			return err
+		}
+
+		err = GenerateManagedList(cfg.Workdir, res)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = os.Mkdir(filepath.Join(cfg.Workdir, "crds"), os.ModePerm)
 	if err != nil {
 		if !errors.Is(err, os.ErrExist) {
@@ -60,6 +74,6 @@ func Do(res *Resource, cfg Options) error {
 	}
 	defer fp.Close()
 
-	_, err = fp.WriteString("// Copyright 2023 KrateoPlatformOps.")
+	_, err = fp.WriteString("// Copyright 2024 Krateo SRL.")
 	return err
 }
