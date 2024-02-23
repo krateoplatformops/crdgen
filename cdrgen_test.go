@@ -24,7 +24,7 @@ func TestGenerate(t *testing.T) {
 			Version: "v1alpha1",
 			Kind:    "Form",
 		},
-		JsonSchemaGetter: &urlJsonSchemaGetter{sampleSchemaURL},
+		SpecJsonSchemaGetter: &urlJsonSchemaGetter{sampleSchemaURL},
 	})
 	if res.Err != nil {
 		t.Fatal(res.Err)

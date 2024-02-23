@@ -20,13 +20,16 @@ type JsonSchemaGetter interface {
 }
 
 type Options struct {
-	WorkDir          string
-	GVK              schema.GroupVersionKind
-	Categories       []string
-	JsonSchemaGetter JsonSchemaGetter
+	WorkDir                string
+	GVK                    schema.GroupVersionKind
+	Categories             []string
+	SpecJsonSchemaGetter   JsonSchemaGetter
+	StatusJsonSchemaGetter JsonSchemaGetter
+	Managed                bool
 }
 
 type Result struct {
+	WorkDir  string
 	Manifest []byte
 	Digest   string
 	GVK      schema.GroupVersionKind
@@ -34,7 +37,7 @@ type Result struct {
 }
 
 func Generate(ctx context.Context, opts Options) (res Result) {
-	dat, err := opts.JsonSchemaGetter.Get()
+	spec, err := opts.SpecJsonSchemaGetter.Get()
 	if err != nil {
 		res.Err = err
 		return
@@ -46,8 +49,17 @@ func Generate(ctx context.Context, opts Options) (res Result) {
 		Group:      opts.GVK.Group,
 		Version:    opts.GVK.Version,
 		Kind:       opts.GVK.Kind,
-		Schema:     dat,
+		SpecSchema: spec,
 		Categories: opts.Categories,
+		Managed:    opts.Managed,
+	}
+
+	if opts.StatusJsonSchemaGetter != nil {
+		nfo.StatusSchema, err = opts.StatusJsonSchemaGetter.Get()
+		if err != nil {
+			res.Err = err
+			return
+		}
 	}
 
 	cfg, err := defaultCodeGeneratorOptions(opts.WorkDir)
@@ -55,8 +67,9 @@ func Generate(ctx context.Context, opts Options) (res Result) {
 		res.Err = err
 		return
 	}
+	res.WorkDir = cfg.Workdir
 
-	clean := len(os.Getenv("CODEGEN_CLEAN_WORKDIR")) == 0
+	clean := len(os.Getenv("CRDGEN_CLEAN_WORKDIR")) == 0
 	if clean {
 		defer os.RemoveAll(cfg.Workdir)
 	}
@@ -130,9 +143,13 @@ func Generate(ctx context.Context, opts Options) (res Result) {
 	}
 
 	h := sha256.New()
-	if _, res.Err = h.Write(dat); res.Err != nil {
+	_, res.Err = h.Write(spec)
+	if len(nfo.StatusSchema) > 0 {
+		_, res.Err = h.Write(nfo.StatusSchema)
+		res.Digest = fmt.Sprintf("%x", h.Sum(nil))
 		return
 	}
+
 	res.Digest = fmt.Sprintf("%x", h.Sum(nil))
 	return
 }

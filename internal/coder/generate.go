@@ -1,7 +1,7 @@
 package coder
 
 import (
-	"errors"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -9,18 +9,10 @@ import (
 )
 
 const (
-	pkgControllerGen      = "sigs.k8s.io/controller-tools/cmd/controller-gen"
-	pkgControllerGenAlias = "-"
+	pkgControllerGen = "sigs.k8s.io/controller-tools/cmd/controller-gen"
 )
 
-func CreateGenerateDotGo(workdir string) error {
-	err := os.MkdirAll(filepath.Join(workdir, "apis"), os.ModePerm)
-	if err != nil {
-		if !errors.Is(err, os.ErrExist) {
-			return err
-		}
-	}
-
+func Generate(wri io.Writer) error {
 	g := jen.NewFile("apis")
 
 	//g.HeaderComment("go:build generate")
@@ -35,11 +27,20 @@ func CreateGenerateDotGo(workdir string) error {
 
 	g.Anon(pkgControllerGen)
 
-	src, err := os.Create(filepath.Join(workdir, "apis", "generate.go"))
+	return g.Render(wri)
+}
+
+func CreateGenerateDotGo(workdir string) error {
+	path, err := makeDirs(workdir, "apis")
+	if err != nil {
+		return err
+	}
+
+	src, err := os.Create(filepath.Join(path, "generate.go"))
 	if err != nil {
 		return err
 	}
 	defer src.Close()
 
-	return g.Render(src)
+	return Generate(src)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/dave/jennifer/jen"
 	"github.com/krateoplatformops/crdgen/internal/strutil"
@@ -15,7 +16,7 @@ const (
 )
 
 func GenerateManagedList(workdir string, res *Resource) error {
-	srcdir, err := createSourceDir(workdir, res)
+	path, err := makeDirs(workdir, "apis", strings.ToLower(res.Kind), normalizeVersion(res.Version))
 	if err != nil {
 		return err
 	}
@@ -45,7 +46,7 @@ func GenerateManagedList(workdir string, res *Resource) error {
 	)
 	g.Line()
 
-	src, err := os.Create(filepath.Join(srcdir, "managed_list.go"))
+	src, err := os.Create(filepath.Join(path, "managed_list.go"))
 	if err != nil {
 		return err
 	}
