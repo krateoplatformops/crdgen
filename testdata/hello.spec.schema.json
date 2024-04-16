@@ -8,6 +8,10 @@
       "display": {
         "type": "integer",
         "default": 1
+      },
+      "url": {
+        "type": "string",
+        "default": "https://github.com/krateoplatformops/sticz"
       }
     },
     "required": [

@@ -147,8 +147,7 @@ func renderField(el transpiler.Field) jen.Code {
 	}
 
 	if val := el.Default; val != nil {
-		fmt.Printf("==> val: %v\n", val)
-		cmt := fmt.Sprintf("+kubebuilder:default:=%s", strutil.Strval(val))
+		cmt := fmt.Sprintf("+kubebuilder:default:=%q", strutil.Strval(val))
 		res.Add(jen.Comment(cmt).Line())
 	}
 
