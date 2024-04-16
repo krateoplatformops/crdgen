@@ -9,6 +9,10 @@
         "type": "integer",
         "default": 1
       },
+      "verbose": {
+        "type": "boolean",
+        "default": false
+      },
       "url": {
         "type": "string",
         "default": "https://github.com/krateoplatformops/sticz"
