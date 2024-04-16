@@ -36,8 +36,8 @@ func TestExample(t *testing.T) {
 	fmt.Println(res.WorkDir)
 	fmt.Println()
 
-	fmt.Println("digest: ", res.Digest)
-	fmt.Println()
+	//fmt.Println("digest: ", res.Digest)
+	//fmt.Println()
 
 	fmt.Println(string(res.Manifest))
 }
