@@ -27,6 +27,8 @@ type Field struct {
 	// Optional
 	Optional *bool
 
+	Default any
+
 	Minimum, Maximum, MultipleOf *float64
 
 	Pattern *string
@@ -81,6 +83,10 @@ func (g *transpiler) createField(name, rootType string, schema *jsonschema.Schem
 		Required:    false,
 		Optional:    ptr.To(ptr.Deref(schema.Optional, false)),
 		Description: schema.Description,
+	}
+
+	if schema.Default != nil {
+		f.Default = schema.Default
 	}
 
 	if schema.Minimum != nil {

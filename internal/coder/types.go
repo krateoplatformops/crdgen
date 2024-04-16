@@ -146,6 +146,12 @@ func renderField(el transpiler.Field) jen.Code {
 		res.Add(jen.Comment(cmt).Line())
 	}
 
+	if val := el.Default; val != nil {
+		fmt.Printf("==> val: %v\n", val)
+		cmt := fmt.Sprintf("+kubebuilder:default:=%s", strutil.Strval(val))
+		res.Add(jen.Comment(cmt).Line())
+	}
+
 	if el.Minimum != nil {
 		val := ptr.Deref(el.Minimum, 0)
 		cmt := fmt.Sprintf("+kubebuilder:validation:Minimum:=%d", int(val))
