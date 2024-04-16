@@ -140,6 +140,22 @@ func renderSpec(kind, key string, el transpiler.Struct, managed bool) jen.Code {
 }
 
 func renderField(el transpiler.Field) jen.Code {
+	defValCmt := func(typ string, val any) string {
+		switch in := val.(type) {
+		case string:
+			if typ == "string" {
+				return fmt.Sprintf("+kubebuilder:default:=%q", in)
+			}
+			return fmt.Sprintf("+kubebuilder:default:=%v", in)
+		case []byte:
+			return fmt.Sprintf("+kubebuilder:default:=%q", string(in))
+		case fmt.Stringer:
+			return fmt.Sprintf("+kubebuilder:default:=%q", in)
+		default:
+			return fmt.Sprintf("+kubebuilder:default:=%v", in)
+		}
+	}
+
 	res := &jen.Statement{}
 	if len(el.Description) > 0 {
 		cmt := fmt.Sprintf("%s: %s", el.Name, el.Description)
@@ -147,11 +163,7 @@ func renderField(el transpiler.Field) jen.Code {
 	}
 
 	if val := el.Default; val != nil {
-		cmt := fmt.Sprintf("+kubebuilder:default:=%s", strutil.Strval(val))
-		if _, ok := val.(string); ok {
-			cmt = fmt.Sprintf("+kubebuilder:default:=%q", strutil.Strval(val))
-		}
-		res.Add(jen.Comment(cmt).Line())
+		res.Add(jen.Comment(defValCmt(el.Type, val)).Line())
 	}
 
 	if el.Minimum != nil {
