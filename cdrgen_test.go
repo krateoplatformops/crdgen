@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/krateoplatformops/crdgen"
@@ -15,7 +16,7 @@ import (
 )
 
 func TestGenerate(t *testing.T) {
-	//os.Setenv("CRDGEN_CLEAN_WORKDIR", "NO")
+	os.Setenv("CRDGEN_CLEAN_WORKDIR", "NO")
 
 	res := crdgen.Generate(context.TODO(), crdgen.Options{
 		WorkDir: "form1",

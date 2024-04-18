@@ -1,6 +1,7 @@
 package crdgen
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -11,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/krateoplatformops/crdgen/internal/assets"
 	"github.com/krateoplatformops/crdgen/internal/coder"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -79,15 +81,30 @@ func Generate(ctx context.Context, opts Options) (res Result) {
 		return
 	}
 
-	cmd := exec.Command("go", "mod", "init", cfg.Module)
-	cmd.Dir = cfg.Workdir
-	if err := cmd.Run(); err != nil {
-		res.Err = fmt.Errorf("%s: performing 'go mod init' (workdir: %s, module: %s, gvk: %s/%s,%s)",
-			err.Error(), cfg.Workdir, cfg.Module, nfo.Group, nfo.Version, nfo.Kind)
+	buf := bytes.Buffer{}
+	err = assets.Render(&buf, "go.mod", map[string]string{
+		"module": cfg.Module,
+	})
+	if err != nil {
+		res.Err = err
 		return
 	}
 
-	cmd = exec.Command("go", "mod", "tidy")
+	err = assets.Export(filepath.Join(cfg.Workdir, "go.mod"), buf.Bytes())
+	if err != nil {
+		res.Err = err
+		return
+	}
+
+	// cmd := exec.Command("go", "mod", "init", cfg.Module)
+	// cmd.Dir = cfg.Workdir
+	// if err := cmd.Run(); err != nil {
+	// 	res.Err = fmt.Errorf("%s: performing 'go mod init' (workdir: %s, module: %s, gvk: %s/%s,%s)",
+	// 		err.Error(), cfg.Workdir, cfg.Module, nfo.Group, nfo.Version, nfo.Kind)
+	// 	return
+	// }
+
+	cmd := exec.Command("go", "mod", "tidy")
 	cmd.Dir = cfg.Workdir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
