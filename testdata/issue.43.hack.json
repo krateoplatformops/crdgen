@@ -1,0 +1,71 @@
+{
+  "type": "object",
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "required": [
+    "infra",
+    "app"
+  ],
+  "properties": {
+    "infra": {
+      "type": "object",
+      "title": "Helm Chart parameters section",
+      "required": [
+        "env",
+        "svc"
+      ],
+      "properties": {
+        "env": {
+          "type": [
+            "string"
+          ],
+          "title": "Helm Chart service parameters section",
+          "default": "dev"
+        },
+        "svc": {
+          "type": [
+            "boolean"
+          ],
+          "title": "Helm Chart service parameters section",
+          "default": false
+        }
+      }
+    },
+    "app": {
+      "type": "object",
+      "title": "Helm Chart parameters section",
+      "required": [
+        "service"
+      ],
+      "properties": {
+        "service": {
+          "type": "object",
+          "title": "Helm Chart service parameters section",
+          "required": [
+            "type",
+            "port"
+          ],
+          "properties": {
+            "type": {
+              "type": [
+                "string"
+              ],
+              "enum": [
+                "NodePort",
+                "LoadBalancer"
+              ],
+              "title": "Helm Chart service type",
+              "default": "NodePort"
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 30000,
+              "maximum": 32767,
+              "title": "Helm Chart service port",
+              "default": "31180"
+            }
+          }
+        }
+      }
+    }
+  }
+}
