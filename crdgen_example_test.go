@@ -17,15 +17,16 @@ import (
 func TestExample(t *testing.T) {
 	//os.Setenv("CRDGEN_CLEAN_WORKDIR", "FALSE")
 	opts := crdgen.Options{
+		//Verbose: true,
 		Managed: true,
-		WorkDir: "form1",
+		WorkDir: "xapp",
 		GVK: schema.GroupVersionKind{
 			Group:   "example.org",
 			Version: "v1alpha1",
-			Kind:    "HelloTemplate",
+			Kind:    "Xapp",
 		},
-		SpecJsonSchemaGetter:   &fileJsonSchemaGetter{"./testdata/hello.spec.schema.json"},
-		StatusJsonSchemaGetter: &fileJsonSchemaGetter{"./testdata/hello.status.schema.json"},
+		SpecJsonSchemaGetter: &fileJsonSchemaGetter{"./testdata/issue.43.hack.json"},
+		//StatusJsonSchemaGetter: &fileJsonSchemaGetter{"./testdata/hello.status.schema.json"},
 	}
 
 	res := crdgen.Generate(context.TODO(), opts)

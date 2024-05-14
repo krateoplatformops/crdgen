@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -28,6 +29,7 @@ type Options struct {
 	SpecJsonSchemaGetter   JsonSchemaGetter
 	StatusJsonSchemaGetter JsonSchemaGetter
 	Managed                bool
+	Verbose                bool
 }
 
 type Result struct {
@@ -39,6 +41,12 @@ type Result struct {
 }
 
 func Generate(ctx context.Context, opts Options) (res Result) {
+	if opts.Verbose {
+		log.SetOutput(os.Stderr)
+	} else {
+		log.SetOutput(io.Discard)
+	}
+
 	spec, err := opts.SpecJsonSchemaGetter.Get()
 	if err != nil {
 		res.Err = err
@@ -95,14 +103,6 @@ func Generate(ctx context.Context, opts Options) (res Result) {
 		res.Err = err
 		return
 	}
-
-	// cmd := exec.Command("go", "mod", "init", cfg.Module)
-	// cmd.Dir = cfg.Workdir
-	// if err := cmd.Run(); err != nil {
-	// 	res.Err = fmt.Errorf("%s: performing 'go mod init' (workdir: %s, module: %s, gvk: %s/%s,%s)",
-	// 		err.Error(), cfg.Workdir, cfg.Module, nfo.Group, nfo.Version, nfo.Kind)
-	// 	return
-	// }
 
 	cmd := exec.Command("go", "mod", "tidy")
 	cmd.Dir = cfg.Workdir

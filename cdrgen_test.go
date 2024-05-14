@@ -25,16 +25,18 @@ func TestGenerate(t *testing.T) {
 			Version: "v1alpha1",
 			Kind:    "Form",
 		},
+		Managed:              true,
+		Verbose:              true,
 		SpecJsonSchemaGetter: &urlJsonSchemaGetter{sampleSchemaURL},
 	})
 	if res.Err != nil {
 		t.Fatal(res.Err)
 	}
 
-	fmt.Println("digest: ", res.Digest)
+	fmt.Println("folder: ", res.WorkDir)
 	fmt.Println()
 
-	fmt.Println(string(res.Manifest))
+	//fmt.Println(string(res.Manifest))
 }
 
 const (

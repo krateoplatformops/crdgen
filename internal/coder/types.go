@@ -3,11 +3,13 @@ package coder
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/dave/jennifer/jen"
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/krateoplatformops/crdgen/internal/ptr"
 	"github.com/krateoplatformops/crdgen/internal/strutil"
@@ -30,28 +32,39 @@ func CreateTypesDotGo(workdir string, res *Resource) error {
 		return err
 	}
 
+	kind := strutil.ToGolangName(res.Kind)
+
 	spec, err := jsonschemaToStruct(bytes.NewReader(res.SpecSchema))
 	if err != nil {
 		return err
 	}
 
-	kind := strutil.ToGolangName(res.Kind)
-
 	g := jen.NewFile(normalizeVersion(res.Version))
 	g.ImportAlias(pkgCommon, pkgCommonAlias)
 	g.ImportAlias(pkgMeta, pkgMetaAlias)
 
+	log.Printf("[DBG] Generating code: %s/types.go\n", path)
+
 	for k, v := range spec {
+		log.Printf("[DBG] Creating struct for '%s': %s\n", k, spew.Sdump(v))
 		g.Add(renderSpec(kind, k, v, res.Managed))
 	}
 
 	g.Add(jen.Line())
 
-	hasStatus := len(res.StatusSchema) > 0
+	hasStatus := len(res.StatusSchema) > 0 || res.Managed
 	if hasStatus {
-		status, err := jsonschemaToStruct(bytes.NewReader(res.StatusSchema))
-		if err != nil {
-			return err
+		status := map[string]transpiler.Struct{
+			"Root": {
+				Name:   "Root",
+				Fields: make(map[string]transpiler.Field),
+			},
+		}
+		if len(res.StatusSchema) > 0 {
+			status, err = jsonschemaToStruct(bytes.NewReader(res.StatusSchema))
+			if err != nil {
+				return err
+			}
 		}
 
 		g.Add(createFailedObjectRef())
