@@ -172,48 +172,34 @@ func (g *transpiler) processSchema(schemaName string, schema *jsonschema.Schema)
 		g.processDefinitions(schema)
 	}
 	schema.FixMissingTypeValue()
-	// if we have multiple schema types, the golang type will be string ////any
-	typ = "string" ////"any"
+
+	// crdgen cannot handle multiple schema types
 	types, isMultiType := schema.MultiType()
-	if len(types) > 0 {
-		for _, schemaType := range types {
-			name := schemaName
-			if isMultiType {
-				name = name + "_" + schemaType
-			}
-			switch schemaType {
-			case "object":
-				rv, err := g.processObject(name, schema)
-				if err != nil {
-					return "", err
-				}
-				if !isMultiType {
-					return rv, nil
-				}
-			case "array":
-				rv, err := g.processArray(name, schema)
-				if err != nil {
-					return "", err
-				}
-				if !isMultiType {
-					return rv, nil
-				}
-			default:
-				rv, err := getPrimitiveTypeName(schemaType, "", false)
-				if err != nil {
-					return "", err
-				}
-				if !isMultiType {
-					return rv, nil
-				}
-			}
+	if isMultiType {
+		sn := schema.JSONKey
+		if p := schema.Parent; p != nil {
+			sn = fmt.Sprintf("%s.%s", p.JSONKey, sn)
 		}
-	} else {
+		return "", fmt.Errorf("multiple types in schema '%s': %s",
+			sn, strings.Join(types, ","))
+	}
+	if len(types) == 0 {
 		if schema.Reference != "" {
 			return g.processReference(schema)
 		}
+		return "", fmt.Errorf("missing type in schema '%s'", schemaName)
 	}
-	return
+
+	schemaType := types[0]
+	if schemaType == "object" {
+		return g.processObject(schemaName, schema)
+	}
+
+	if schemaType == "array" {
+		return g.processArray(schemaName, schema)
+	}
+
+	return getPrimitiveTypeName(schemaType, "", false)
 }
 
 // name: name of this array, usually the js key
@@ -334,9 +320,6 @@ func (g *transpiler) processObject(name string, schema *jsonschema.Schema) (typ 
 
 // return a name for this (sub-)schema.
 func (g *transpiler) getSchemaName(keyName string, schema *jsonschema.Schema) string {
-	if len(schema.Title) > 0 {
-		return strutil.ToGolangName(schema.Title)
-	}
 	if keyName != "" {
 		return strutil.ToGolangName(keyName)
 	}
