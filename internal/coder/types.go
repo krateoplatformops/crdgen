@@ -47,7 +47,7 @@ func CreateTypesDotGo(workdir string, res *Resource) error {
 
 	for k, v := range spec {
 		log.Printf("[DBG] Creating struct for '%s': %s\n", k, spew.Sdump(v))
-		g.Add(renderSpec(kind, k, v, res.Managed))
+		g.Add(renderSpec(kind, k, v))
 	}
 
 	g.Add(jen.Line())
@@ -131,18 +131,11 @@ func CreateTypesDotGo(workdir string, res *Resource) error {
 	return g.Render(src)
 }
 
-func renderSpec(kind, key string, el transpiler.Struct, managed bool) jen.Code {
+func renderSpec(kind, key string, el transpiler.Struct) jen.Code {
 	fields := []jen.Code{}
 
 	if key == "Root" {
 		key = strutil.ToGolangName(fmt.Sprintf("%sSpec", kind))
-		if managed {
-			fields = append(fields,
-				jen.Qual(pkgCommon, "ManagedSpec").
-					Tag(map[string]string{
-						"json": ",inline",
-					}).Line())
-		}
 	}
 
 	for _, f := range el.Fields {
@@ -234,7 +227,7 @@ func renderStatus(kind, key string, el transpiler.Struct, managed bool) jen.Code
 		key = strutil.ToGolangName(fmt.Sprintf("%sStatus", kind))
 		if managed {
 			fields = append(fields,
-				jen.Qual(pkgCommon, "ManagedStatus").
+				jen.Qual(pkgCommon, "ConditionedStatus").
 					Tag(map[string]string{
 						"json": ",inline",
 					}),
