@@ -21,9 +21,6 @@ func GenerateManaged(workdir string, res *Resource) error {
 	g.Add(generateConditionFuncs(res))
 	g.Line()
 
-	g.Add(generateDeletionPolicyFuncs(res))
-	g.Line()
-
 	src, err := os.Create(filepath.Join(path, "managed.go"))
 	if err != nil {
 		return err
@@ -48,25 +45,6 @@ func generateConditionFuncs(res *Resource) jen.Code {
 		jen.Id("c").Op("...").Qual(pkgCommon, "Condition"),
 	).Block(
 		jen.Id("mg").Dot("Status").Dot("SetConditions").Call(jen.Id("c").Op("...")),
-	)
-
-	return getter.Line().Line().Add(setter)
-}
-
-func generateDeletionPolicyFuncs(res *Resource) jen.Code {
-	kind := strutil.ToGolangName(res.Kind)
-
-	getter := jen.Func().Params(jen.Id("mg").Op("*").Id(kind)).
-		Id("GetDeletionPolicy").Params().
-		Qual(pkgCommon, "DeletionPolicy").Block(
-		jen.Return(jen.Id("mg").Dot("Spec").Dot("DeletionPolicy")),
-	)
-
-	setter := jen.Func().Params(jen.Id("mg").Op("*").Id(kind)).
-		Id("SetDeletionPolicy").Params(
-		jen.Id("p").Qual(pkgCommon, "DeletionPolicy"),
-	).Block(
-		jen.Id("mg").Dot("Spec").Dot("DeletionPolicy").Op("=").Id("p"),
 	)
 
 	return getter.Line().Line().Add(setter)
