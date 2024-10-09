@@ -200,7 +200,7 @@ func renderField(el transpiler.Field) jen.Code {
 		res.Add(jen.Comment(cmt).Line())
 	}
 
-	if ptr.Deref(el.Optional, false) {
+	if !el.Required {
 		res.Add(jen.Comment("+optional").Line())
 		if !strings.HasPrefix(el.Type, "*") {
 			res.Add(jen.Id(el.Name).Op("*").Id(el.Type))
@@ -252,28 +252,24 @@ func createFailedObjectRef() jen.Code {
 			Name:        "APIVersion",
 			JSONName:    "apiVersion",
 			Description: "API version of the object.",
-			Optional:    ptr.To(false),
 			Type:        "string",
 		},
 		{
 			Name:        "Kind",
 			JSONName:    "kind",
 			Description: "Kind of the object.",
-			Optional:    ptr.To(false),
 			Type:        "string",
 		},
 		{
 			Name:        "Name",
 			JSONName:    "name",
 			Description: "Name of the object.",
-			Optional:    ptr.To(false),
 			Type:        "string",
 		},
 		{
 			Name:        "Namespace",
 			JSONName:    "namespace",
 			Description: "Namespace of the object.",
-			Optional:    ptr.To(false),
 			Type:        "string",
 		},
 	}
