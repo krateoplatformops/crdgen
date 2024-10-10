@@ -51,7 +51,6 @@ type Schema struct {
 	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.2
 	Default any
 
-	Optional   *bool    `json:"optional,omitempty"`
 	Minimum    *float64 `json:"minimum,omitempty"`
 	Maximum    *float64 `json:"maximum,omitempty"`
 	MultipleOf *float64 `json:"multipleOf,omitempty"`

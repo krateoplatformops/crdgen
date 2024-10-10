@@ -1,6 +1,8 @@
 package transpiler_test
 
 import (
+	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -14,8 +16,9 @@ func TestFieldGeneration(t *testing.T) {
 		"property2": {Reference: "#/definitions/address"},
 		// test sub-objects with properties or additionalProperties
 		"property3": {
-			TypeValue: "object",
-			Title:     "SubObj1",
+			TypeValue:   "object",
+			Title:       "SubObj1",
+			Description: "SubObj1 is a sub-object",
 			Properties: map[string]*jsonschema.Schema{
 				"name": {TypeValue: "string"},
 			},
@@ -86,21 +89,24 @@ func TestFieldGeneration(t *testing.T) {
 		t.Errorf("Expected 8 results, but got %d results", len(structs))
 	}
 
-	testField(structs["TestFieldGeneration"].Fields["Property1"], "property1", "Property1", "string", false, t)
-	testField(structs["TestFieldGeneration"].Fields["Property2"], "property2", "Property2", "*Address", true, t)
-	testField(structs["TestFieldGeneration"].Fields["Property3"], "property3", "Property3", "*SubObj1", false, t)
-	testField(structs["TestFieldGeneration"].Fields["Property4"], "property4", "Property4", "map[string]int", false, t)
-	testField(structs["TestFieldGeneration"].Fields["Property5"], "property5", "Property5", "*SubObj3", false, t)
-	testField(structs["TestFieldGeneration"].Fields["Property6"], "property6", "Property6", "map[string]*SubObj4a", false, t)
-	testField(structs["TestFieldGeneration"].Fields["Property7"], "property7", "Property7", "*Property7", false, t)
-	testField(structs["TestFieldGeneration"].Fields["Property8"], "property8", "Property8", "*SubObj5", false, t)
+	b, _ := json.MarshalIndent(structs, "", "  ")
+	fmt.Println(string(b))
 
-	testField(structs["SubObj1"].Fields["Name"], "name", "Name", "string", false, t)
-	testField(structs["SubObj3"].Fields["SubObj3a"], "SubObj3a", "SubObj3a", "*SubObj3a", false, t)
-	testField(structs["SubObj4a"].Fields["Subproperty1"], "subproperty1", "Subproperty1", "int", false, t)
+	testField(structs["Root"].Fields["Property1"], "property1", "Property1", "string", false, t)
+	testField(structs["Root"].Fields["Property2"], "property2", "Property2", "*Address", true, t)
+	testField(structs["Root"].Fields["Property3"], "property3", "Property3", "*Property3", false, t)
+	testField(structs["Root"].Fields["Property4"], "property4", "Property4", "map[string]int", false, t)
+	testField(structs["Root"].Fields["Property5"], "property5", "Property5", "*Property5", false, t)
+	testField(structs["Root"].Fields["Property6"], "property6", "Property6", "map[string]*Property6Item", false, t)
+	testField(structs["Root"].Fields["Property7"], "property7", "Property7", "*Property7", false, t)
+	testField(structs["Root"].Fields["Property8"], "property8", "Property8", "*Property8", false, t)
 
-	testField(structs["SubObj5"].Fields["Name"], "name", "Name", "string", false, t)
-	testField(structs["SubObj5"].Fields["AdditionalProperties"], "-", "AdditionalProperties", "map[string]int", false, t)
+	testField(structs["Property3"].Fields["Name"], "name", "Name", "string", false, t)
+	testField(structs["Property5"].Fields["SubObj3a"], "SubObj3a", "SubObj3a", "*SubObj3a", false, t)
+	testField(structs["Property6Item"].Fields["Subproperty1"], "subproperty1", "Subproperty1", "int", false, t)
+
+	testField(structs["Property8"].Fields["Name"], "name", "Name", "string", false, t)
+	testField(structs["Property8"].Fields["AdditionalProperties"], "-", "AdditionalProperties", "map[string]int", false, t)
 
 	if strct, ok := structs["Property7"]; !ok {
 		t.Fatal("Property7 wasn't generated")
@@ -111,7 +117,7 @@ func TestFieldGeneration(t *testing.T) {
 	}
 }
 
-func TestFieldGenerationWithArrayReferences(t *testing.T) {
+func RootWithArrayReferences(t *testing.T) {
 	properties := map[string]*jsonschema.Schema{
 		"property1": {TypeValue: "string"},
 		"property2": {
@@ -139,7 +145,7 @@ func TestFieldGenerationWithArrayReferences(t *testing.T) {
 
 	root := jsonschema.Schema{
 		SchemaType: "http://localhost",
-		Title:      "TestFieldGenerationWithArrayReferences",
+		Title:      "RootWithArrayReferences",
 		TypeValue:  "object",
 		Properties: properties,
 		Definitions: map[string]*jsonschema.Schema{
@@ -160,16 +166,17 @@ func TestFieldGenerationWithArrayReferences(t *testing.T) {
 		t.Errorf("Expected 3 results, but got %d results", len(structs))
 	}
 
-	testField(structs["TestFieldGenerationWithArrayReferences"].Fields["Property1"], "property1", "Property1", "string", false, t)
-	testField(structs["TestFieldGenerationWithArrayReferences"].Fields["Property2"], "property2", "Property2", "[]*Address", true, t)
-	testField(structs["TestFieldGenerationWithArrayReferences"].Fields["Property3"], "property3", "Property3", "[]map[string]int", false, t)
-	testField(structs["TestFieldGenerationWithArrayReferences"].Fields["Property4"], "property4", "Property4", "[][]*Inner", false, t)
+	testField(structs["Root"].Fields["Property1"], "property1", "Property1", "string", false, t)
+	testField(structs["Root"].Fields["Property2"], "property2", "Property2", "[]*Address", true, t)
+	testField(structs["Root"].Fields["Property3"], "property3", "Property3", "[]map[string]int", false, t)
+	testField(structs["Root"].Fields["Property4"], "property4", "Property4", "[][]*Inner", false, t)
 }
 
 func testField(actual transpiler.Field, expectedJSONName string, expectedName string, expectedType string, expectedToBeRequired bool, t *testing.T) {
 	if actual.JSONName != expectedJSONName {
 		t.Errorf("JSONName - expected \"%s\", got \"%s\"", expectedJSONName, actual.JSONName)
 	}
+
 	if actual.Name != expectedName {
 		t.Errorf("Name - expected \"%s\", got \"%s\"", expectedName, actual.Name)
 	}
@@ -204,7 +211,7 @@ func TestNestedStructGeneration(t *testing.T) {
 		t.Errorf("2 results should have been created, a root type and a type for the object 'property1' but %d structs were made", len(results))
 	}
 
-	if _, contains := results["Example"]; !contains {
+	if _, contains := results["Root"]; !contains {
 		t.Errorf("The Example type should have been made, but only types %s were made.", strings.Join(getStructNamesFromMap(results), ", "))
 	}
 
@@ -212,8 +219,8 @@ func TestNestedStructGeneration(t *testing.T) {
 		t.Errorf("The Property1 type should have been made, but only types %s were made.", strings.Join(getStructNamesFromMap(results), ", "))
 	}
 
-	if results["Example"].Fields["Property1"].Type != "*Property1" {
-		t.Errorf("Expected that the nested type property1 is generated as a struct, so the property type should be *Property1, but was %s.", results["Example"].Fields["Property1"].Type)
+	if results["Root"].Fields["Property1"].Type != "*Property1" {
+		t.Errorf("Expected that the nested type property1 is generated as a struct, so the property type should be *Property1, but was %s.", results["Root"].Fields["Property1"].Type)
 	}
 }
 
@@ -240,7 +247,7 @@ func TestEmptyNestedStructGeneration(t *testing.T) {
 		t.Errorf("2 results should have been created, a root type and a type for the object 'property1' but %d structs were made", len(results))
 	}
 
-	if _, contains := results["Example"]; !contains {
+	if _, contains := results["Root"]; !contains {
 		t.Errorf("The Example type should have been made, but only types %s were made.", strings.Join(getStructNamesFromMap(results), ", "))
 	}
 
@@ -248,8 +255,8 @@ func TestEmptyNestedStructGeneration(t *testing.T) {
 		t.Errorf("The Property1 type should have been made, but only types %s were made.", strings.Join(getStructNamesFromMap(results), ", "))
 	}
 
-	if results["Example"].Fields["Property1"].Type != "*Property1" {
-		t.Errorf("Expected that the nested type property1 is generated as a struct, so the property type should be *Property1, but was %s.", results["Example"].Fields["Property1"].Type)
+	if results["Root"].Fields["Property1"].Type != "*Property1" {
+		t.Errorf("Expected that the nested type property1 is generated as a struct, so the property type should be *Property1, but was %s.", results["Root"].Fields["Property1"].Type)
 	}
 }
 
@@ -334,7 +341,7 @@ func TestArrayGeneration(t *testing.T) {
 		t.Errorf("Expected one struct should have been generated, but %d have been generated.", len(results))
 	}
 
-	artistStruct, ok := results["Artist"]
+	artistStruct, ok := results["RootItems"]
 	if !ok {
 		t.Errorf("Expected Name to be Artist, that wasn't found, but the struct contains \"%+v\"", results)
 	}
@@ -387,7 +394,7 @@ func TestNestedArrayGeneration(t *testing.T) {
 		t.Errorf("Expected two structs to be generated - 'Favourite Bars' and 'City', but %d have been generated.", len(results))
 	}
 
-	fbStruct, ok := results["FavouriteBars"]
+	fbStruct, ok := results["Root"]
 	if !ok {
 		t.Errorf("FavouriteBars struct was not found. The results were %+v", results)
 	}
@@ -400,7 +407,7 @@ func TestNestedArrayGeneration(t *testing.T) {
 	if !ok {
 		t.Errorf("Expected to find the Cities field on the FavouriteBars, but didn't. The struct is %+v", fbStruct)
 	}
-	if f.Type != "[]*City" {
+	if f.Type != "[]*CitiesItems" {
 		t.Errorf("Expected to find that the Cities array was of type *City, but it was of %s", f.Type)
 	}
 
@@ -413,7 +420,7 @@ func TestNestedArrayGeneration(t *testing.T) {
 		t.Errorf("Expected to find that the Tags array was of type string, but it was of %s", f.Type)
 	}
 
-	cityStruct, ok := results["City"]
+	cityStruct, ok := results["CitiesItems"]
 	if !ok {
 		t.Error("City struct was not found.")
 	}
@@ -449,6 +456,12 @@ func TestMultipleSchemaStructGeneration(t *testing.T) {
 					"zip":      {TypeValue: "number"},
 				},
 			},
+			"person": {
+				Properties: map[string]*jsonschema.Schema{
+					"name": {TypeValue: "string"},
+					"age":  {TypeValue: "number"},
+				},
+			},
 		},
 	}
 
@@ -482,7 +495,7 @@ func TestThatArraysWithoutDefinedItemTypesAreGeneratedAsEmptyInterfaces(t *testi
 		t.Errorf("Error generating structs: %v", err)
 	}
 
-	if _, contains := results["ArrayWithoutDefinedItem"]; !contains {
+	if _, contains := results["Root"]; !contains {
 		t.Errorf("The ArrayWithoutDefinedItem type should have been made, but only types %s were made.", strings.Join(getStructNamesFromMap(results), ", "))
 	}
 

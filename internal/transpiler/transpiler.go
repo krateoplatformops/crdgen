@@ -24,8 +24,6 @@ type Field struct {
 
 	// Required is set to true when the field is required.
 	Required bool
-	// Optional
-	Optional *bool
 
 	Default any
 
@@ -77,11 +75,11 @@ type transpiler struct {
 
 func (g *transpiler) createField(name, rootType string, schema *jsonschema.Schema) Field {
 	f := Field{
-		Name:        name,
-		JSONName:    "",
-		Type:        rootType,
-		Required:    false,
-		Optional:    ptr.To(ptr.Deref(schema.Optional, false)),
+		Name:     name,
+		JSONName: "",
+		Type:     rootType,
+		Required: false,
+		// Optional:    ptr.To(ptr.Deref(schema.Optional, true)),
 		Description: schema.Description,
 	}
 
@@ -278,11 +276,11 @@ func (g *transpiler) processObject(name string, schema *jsonschema.Schema) (typ 
 		}
 		// this struct will have both regular and additional properties
 		f := Field{
-			Name:        "AdditionalProperties",
-			JSONName:    "-",
-			Type:        mapTyp,
-			Required:    false,
-			Optional:    ptr.To(true),
+			Name:     "AdditionalProperties",
+			JSONName: "-",
+			Type:     mapTyp,
+			Required: false,
+			// Optional:    ptr.To(true),
 			Description: "",
 		}
 		strct.Fields[f.Name] = f
@@ -296,11 +294,11 @@ func (g *transpiler) processObject(name string, schema *jsonschema.Schema) (typ 
 			// everything is valid additional
 			subTyp := "map[string]any"
 			f := Field{
-				Name:        "AdditionalProperties",
-				JSONName:    "-",
-				Type:        subTyp,
-				Required:    false,
-				Optional:    ptr.To(true),
+				Name:     "AdditionalProperties",
+				JSONName: "-",
+				Type:     subTyp,
+				Required: false,
+				// Optional:    ptr.To(true),
 				Description: "",
 			}
 			strct.Fields[f.Name] = f
