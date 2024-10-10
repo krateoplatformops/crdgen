@@ -110,6 +110,7 @@ func CreateTypesDotGo(workdir string, res *Resource) error {
 		)
 	}
 
+	g.Add(jen.Comment(string(spec["Root"].Description)))
 	g.Add(jen.Type().Id(kind).Struct(fields...).Line())
 
 	g.Add(jen.Comment("+kubebuilder:object:root=true"))
@@ -141,6 +142,13 @@ func renderSpec(kind, key string, el transpiler.Struct) jen.Code {
 	for _, f := range el.Fields {
 		fields = append(fields, renderField(f))
 	}
+
+	// res := &jen.Statement{}
+
+	// if len(el.Description) > 0 {
+	// 	cmt := el.Description
+	// 	res.Add(jen.Comment(cmt).Line())
+	// }
 
 	return jen.Type().Id(key).Struct(fields...).Line()
 }
