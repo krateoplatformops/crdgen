@@ -172,7 +172,7 @@ func renderField(el transpiler.Field) jen.Code {
 
 	res := &jen.Statement{}
 	if len(el.Description) > 0 {
-		cmt := fmt.Sprintf("%s: %s", el.Name, el.Description)
+		cmt := el.Description
 		res.Add(jen.Comment(cmt).Line())
 	}
 
