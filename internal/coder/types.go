@@ -143,14 +143,16 @@ func renderSpec(kind, key string, el transpiler.Struct) jen.Code {
 		fields = append(fields, renderField(f))
 	}
 
-	// res := &jen.Statement{}
+	res := &jen.Statement{}
 
-	// if len(el.Description) > 0 {
-	// 	cmt := el.Description
-	// 	res.Add(jen.Comment(cmt).Line())
-	// }
+	if el.PreserveUnknownFields {
+		res.Add(jen.Comment("+kubebuilder:pruning:PreserveUnknownFields").Line()).
+			Type().Id(key).Struct(fields...).Line()
+	} else {
+		res.Add(jen.Type().Id(key).Struct(fields...).Line())
+	}
 
-	return jen.Type().Id(key).Struct(fields...).Line()
+	return res
 }
 
 func renderField(el transpiler.Field) jen.Code {
@@ -251,7 +253,15 @@ func renderStatus(kind, key string, el transpiler.Struct, managed bool) jen.Code
 		fields = append(fields, renderField(f))
 	}
 
-	return jen.Type().Id(key).Struct(fields...).Line()
+	res := &jen.Statement{}
+	if el.PreserveUnknownFields {
+		res.Add(jen.Comment("+kubebuilder:pruning:PreserveUnknownFields").Line()).
+			Type().Id(key).Struct(fields...).Line()
+	} else {
+		res.Add(jen.Type().Id(key).Struct(fields...).Line())
+	}
+
+	return res
 }
 
 func createFailedObjectRef() jen.Code {
