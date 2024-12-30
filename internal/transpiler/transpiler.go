@@ -44,8 +44,9 @@ type Struct struct {
 	Description string
 	Fields      map[string]Field
 
-	GenerateCode   bool
-	AdditionalType string
+	GenerateCode          bool
+	AdditionalType        string
+	PreserveUnknownFields bool
 }
 
 // Transpile creates an instance of a generator which will produce structs.
@@ -254,6 +255,7 @@ func (g *transpiler) processObject(name string, schema *jsonschema.Schema) (typ 
 		}
 		strct.Fields[fieldName] = f
 	}
+
 	// additionalProperties with typed sub-schema
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.AdditionalPropertiesBool == nil {
 		ap := (*jsonschema.Schema)(schema.AdditionalProperties)
@@ -263,21 +265,25 @@ func (g *transpiler) processObject(name string, schema *jsonschema.Schema) (typ 
 			return "", err
 		}
 		mapTyp := "map[string]" + subTyp
+
 		// If this object is inline property for another object, and only contains additional properties, we can
 		// collapse the structure down to a map.
 		//
 		// If this object is a definition and only contains additional properties, we can't do that or we end up with
 		// no struct
 		isDefinitionObject := strings.HasPrefix(schema.PathElement, "definitions")
-		if len(schema.Properties) == 0 && !isDefinitionObject {
-			// since there are no regular properties, we don't need to emit a struct for this object - return the
-			// additionalProperties map type.
+
+		if isDefinitionObject {
+			return "", fmt.Errorf("object is a definition and only contains additional properties")
+		}
+
+		if len(schema.Properties) == 0 {
 			return mapTyp, nil
 		}
-		// this struct will have both regular and additional properties
+
 		f := Field{
 			Name:     "AdditionalProperties",
-			JSONName: "-",
+			JSONName: "",
 			Type:     mapTyp,
 			Required: false,
 			// Optional:    ptr.To(true),
@@ -291,20 +297,7 @@ func (g *transpiler) processObject(name string, schema *jsonschema.Schema) (typ 
 	// additionalProperties as either true (everything) or false (nothing)
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.AdditionalPropertiesBool != nil {
 		if *schema.AdditionalProperties.AdditionalPropertiesBool {
-			// everything is valid additional
-			subTyp := "map[string]any"
-			f := Field{
-				Name:     "AdditionalProperties",
-				JSONName: "-",
-				Type:     subTyp,
-				Required: false,
-				// Optional:    ptr.To(true),
-				Description: "",
-			}
-			strct.Fields[f.Name] = f
-			// setting this will cause marshal code to be emitted in Output()
-			strct.GenerateCode = true
-			strct.AdditionalType = "any"
+			strct.PreserveUnknownFields = true
 		} else {
 			// nothing
 			strct.GenerateCode = true
