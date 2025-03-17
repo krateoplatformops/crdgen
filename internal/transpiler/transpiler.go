@@ -3,6 +3,7 @@ package transpiler
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/krateoplatformops/crdgen/internal/ptr"
@@ -21,6 +22,8 @@ type Field struct {
 	Type string
 
 	Description string
+
+	Title string
 
 	// Required is set to true when the field is required.
 	Required bool
@@ -80,6 +83,7 @@ func (g *transpiler) createField(name, rootType string, schema *jsonschema.Schem
 		JSONName: "",
 		Type:     rootType,
 		Required: false,
+		Title:    schema.Title,
 		// Optional:    ptr.To(ptr.Deref(schema.Optional, true)),
 		Description: schema.Description,
 	}
@@ -102,6 +106,12 @@ func (g *transpiler) createField(name, rootType string, schema *jsonschema.Schem
 
 	if schema.Enum != nil {
 		f.Enum = strslice(schema.Enum)
+
+		if ty, multiple := schema.Type(); !multiple && ty == "string" {
+			for i, e := range f.Enum {
+				f.Enum[i] = strconv.Quote(e)
+			}
+		}
 	}
 
 	if schema.Pattern != nil {
