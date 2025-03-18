@@ -13,6 +13,35 @@ import (
 	"github.com/krateoplatformops/crdgen/internal/transpiler/jsonschema"
 )
 
+func TestRootRef(t *testing.T) {
+	root := jsonschema.Schema{
+		SchemaType: "http://json-schema.org/draft-06/schema#",
+		Title:      "TestRootRef",
+		Definitions: map[string]*jsonschema.Schema{
+			"Address": {
+				TypeValue:                "object",
+				AdditionalPropertiesBool: ptr.To(false),
+				Properties: map[string]*jsonschema.Schema{
+					"zipcode": {
+						Reference: "#/definitions/zip",
+					},
+				},
+			},
+			"zip": {TypeValue: "string"},
+		},
+		Reference: "#/definitions/Address",
+	}
+	root.Init()
+
+	structs, err := transpiler.Transpile(&root)
+	if err != nil {
+		t.Error("Failed to get the fields: ", err)
+	}
+
+	testField(structs["Root"].Fields["Zipcode"], "zipcode", "Zipcode", "string", false, "", t)
+
+}
+
 func TestFieldGeneration(t *testing.T) {
 	properties := map[string]*jsonschema.Schema{
 		"property1": {TypeValue: "string"},

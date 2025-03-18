@@ -139,7 +139,18 @@ func (g *transpiler) createStructs() (err error) {
 			f := g.createField(name, rootType, schema)
 			g.Aliases[name] = f
 		}
+
+		if name == "Root" && rootType != "*Root" {
+			obj, ok := g.Structs[strings.TrimPrefix(rootType, "*")]
+			if ok {
+				obj.Description = schema.Description
+				g.Structs["Root"] = obj
+				delete(g.Structs, strings.TrimPrefix(rootType, "*"))
+			}
+		}
+
 	}
+
 	return
 }
 
