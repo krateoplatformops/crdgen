@@ -3,6 +3,8 @@ package transpiler
 import (
 	"errors"
 	"fmt"
+	"math/rand"
+	"strconv"
 	"strings"
 
 	"github.com/krateoplatformops/crdgen/internal/ptr"
@@ -21,6 +23,8 @@ type Field struct {
 	Type string
 
 	Description string
+
+	Title string
 
 	// Required is set to true when the field is required.
 	Required bool
@@ -80,6 +84,7 @@ func (g *transpiler) createField(name, rootType string, schema *jsonschema.Schem
 		JSONName: "",
 		Type:     rootType,
 		Required: false,
+		Title:    schema.Title,
 		// Optional:    ptr.To(ptr.Deref(schema.Optional, true)),
 		Description: schema.Description,
 	}
@@ -102,6 +107,12 @@ func (g *transpiler) createField(name, rootType string, schema *jsonschema.Schem
 
 	if schema.Enum != nil {
 		f.Enum = strslice(schema.Enum)
+
+		if ty, multiple := schema.Type(); !multiple && ty == "string" {
+			for i, e := range f.Enum {
+				f.Enum[i] = strconv.Quote(e)
+			}
+		}
 	}
 
 	if schema.Pattern != nil {
@@ -129,7 +140,18 @@ func (g *transpiler) createStructs() (err error) {
 			f := g.createField(name, rootType, schema)
 			g.Aliases[name] = f
 		}
+
+		if name == "Root" && rootType != "*Root" {
+			obj, ok := g.Structs[strings.TrimPrefix(rootType, "*")]
+			if ok {
+				obj.Description = schema.Description
+				g.Structs["Root"] = obj
+				delete(g.Structs, strings.TrimPrefix(rootType, "*"))
+			}
+		}
+
 	}
+
 	return
 }
 
@@ -304,6 +326,27 @@ func (g *transpiler) processObject(name string, schema *jsonschema.Schema) (typ 
 			strct.AdditionalType = "false"
 		}
 	}
+	if _, present := g.Structs[strct.Name]; present {
+		parentName := g.getSchemaName("", schema.Parent)
+
+		generatedName := strutil.ToGolangName(parentName + strct.Name)
+
+		if _, ok := g.Structs[generatedName]; ok {
+			// if case also in this case there is a collision, we need to generate a new name
+			// to avoid conflicts
+			chartset := "abcdefghijklmnopqrstuvwxyz"
+
+			retry := 0
+			for present := false; present || retry < 5; _, present = g.Structs[generatedName] {
+				// generate a new name
+				generatedName = strutil.ToGolangName(parentName + strct.Name + string(chartset[rand.Intn(len(chartset))]))
+				retry++
+			}
+		}
+		g.Structs[generatedName] = strct
+		return "*" + generatedName, nil
+	}
+
 	g.Structs[strct.Name] = strct
 	// objects are always a pointer
 	return getPrimitiveTypeName("object", name, true)

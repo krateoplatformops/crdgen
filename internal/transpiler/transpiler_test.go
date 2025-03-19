@@ -3,6 +3,8 @@ package transpiler_test
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -10,6 +12,79 @@ import (
 	"github.com/krateoplatformops/crdgen/internal/transpiler"
 	"github.com/krateoplatformops/crdgen/internal/transpiler/jsonschema"
 )
+
+func TestDuplicateStructGeneration(t *testing.T) {
+	root := jsonschema.Schema{
+		SchemaType: "http://json-schema.org/draft-06/schema#",
+		Title:      "TestRootRef",
+		Properties: map[string]*jsonschema.Schema{
+			"property1": {TypeValue: "string"},
+			"address": {
+				TypeValue: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"address1": {TypeValue: "string"},
+					"zip": {
+						TypeValue: "object",
+						Properties: map[string]*jsonschema.Schema{
+							"test": {TypeValue: "string"},
+						},
+					},
+				},
+			},
+			"address2": {TypeValue: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"address1": {TypeValue: "string"},
+					"zip": {
+						TypeValue: "object",
+						Properties: map[string]*jsonschema.Schema{
+							"test1": {TypeValue: "string"},
+						},
+					},
+				}},
+		},
+	}
+
+	root.Init()
+
+	structs, err := transpiler.Transpile(&root)
+	if err != nil {
+		t.Error("Failed to get the fields: ", err)
+	}
+
+	b, _ := json.MarshalIndent(structs, "", "  ")
+	fmt.Println(string(b))
+	testField(structs["Address2Zip"].Fields["Test1"], "test1", "Test1", "string", false, "", t)
+	testField(structs["Zip"].Fields["Test"], "test", "Test", "string", false, "", t)
+}
+
+func TestRootRef(t *testing.T) {
+	root := jsonschema.Schema{
+		SchemaType: "http://json-schema.org/draft-06/schema#",
+		Title:      "TestRootRef",
+		Definitions: map[string]*jsonschema.Schema{
+			"Address": {
+				TypeValue:                "object",
+				AdditionalPropertiesBool: ptr.To(false),
+				Properties: map[string]*jsonschema.Schema{
+					"zipcode": {
+						Reference: "#/definitions/zip",
+					},
+				},
+			},
+			"zip": {TypeValue: "string"},
+		},
+		Reference: "#/definitions/Address",
+	}
+	root.Init()
+
+	structs, err := transpiler.Transpile(&root)
+	if err != nil {
+		t.Error("Failed to get the fields: ", err)
+	}
+
+	testField(structs["Root"].Fields["Zipcode"], "zipcode", "Zipcode", "string", false, "", t)
+
+}
 
 func TestFieldGeneration(t *testing.T) {
 	properties := map[string]*jsonschema.Schema{
@@ -70,6 +145,10 @@ func TestFieldGeneration(t *testing.T) {
 			Title:                    "SubObj6",
 			AdditionalPropertiesBool: ptr.To(true),
 		},
+		"enumProperty": {
+			TypeValue: "string",
+			Enum:      []interface{}{"value1", "value2", "1", "2"},
+		},
 	}
 
 	requiredFields := []string{"property2"}
@@ -101,20 +180,22 @@ func TestFieldGeneration(t *testing.T) {
 	// b, _ := json.MarshalIndent(structs, "", "  ")
 	// fmt.Println(string(b))
 
-	testField(structs["Root"].Fields["Property1"], "property1", "Property1", "string", false, t)
-	testField(structs["Root"].Fields["Property2"], "property2", "Property2", "*Address", true, t)
-	testField(structs["Root"].Fields["Property3"], "property3", "Property3", "*Property3", false, t)
-	testField(structs["Root"].Fields["Property4"], "property4", "Property4", "map[string]int", false, t)
-	testField(structs["Root"].Fields["Property5"], "property5", "Property5", "*Property5", false, t)
-	testField(structs["Root"].Fields["Property6"], "property6", "Property6", "map[string]*Property6Item", false, t)
-	testField(structs["Root"].Fields["Property7"], "property7", "Property7", "*Property7", false, t)
-	testField(structs["Root"].Fields["Property8"], "property8", "Property8", "*Property8", false, t)
+	testField(structs["Root"].Fields["Property1"], "property1", "Property1", "string", false, "", t)
+	testField(structs["Root"].Fields["Property2"], "property2", "Property2", "*Address", true, "", t)
+	testField(structs["Root"].Fields["Property3"], "property3", "Property3", "*Property3", false, "SubObj1", t)
+	testField(structs["Root"].Fields["Property4"], "property4", "Property4", "map[string]int", false, "SubObj2", t)
+	testField(structs["Root"].Fields["Property5"], "property5", "Property5", "*Property5", false, "SubObj3", t)
+	testField(structs["Root"].Fields["Property6"], "property6", "Property6", "map[string]*Property6Item", false, "SubObj4", t)
+	testField(structs["Root"].Fields["Property7"], "property7", "Property7", "*Property7", false, "", t)
+	testField(structs["Root"].Fields["Property8"], "property8", "Property8", "*Property8", false, "SubObj5", t)
+	testField(structs["Root"].Fields["Property9"], "property9", "Property9", "*Property9", false, "SubObj6", t)
+	testField(structs["Root"].Fields["EnumProperty"], "enumProperty", "EnumProperty", "string", false, "", t)
 
-	testField(structs["Property3"].Fields["Name"], "name", "Name", "string", false, t)
-	testField(structs["Property5"].Fields["SubObj3a"], "SubObj3a", "SubObj3a", "*SubObj3a", false, t)
-	testField(structs["Property6Item"].Fields["Subproperty1"], "subproperty1", "Subproperty1", "int", false, t)
+	testField(structs["Property3"].Fields["Name"], "name", "Name", "string", false, "", t)
+	testField(structs["Property5"].Fields["SubObj3a"], "SubObj3a", "SubObj3a", "*SubObj3a", false, "", t)
+	testField(structs["Property6Item"].Fields["Subproperty1"], "subproperty1", "Subproperty1", "int", false, "", t)
 
-	testField(structs["Property8"].Fields["Name"], "name", "Name", "string", false, t)
+	testField(structs["Property8"].Fields["Name"], "name", "Name", "string", false, "", t)
 	//testField(structs["Property8"].Fields["AdditionalProperties"], "-", "AdditionalProperties", "map[string]int", false, t)
 
 	if strct, ok := structs["Property7"]; !ok {
@@ -124,6 +205,20 @@ func TestFieldGeneration(t *testing.T) {
 			t.Fatal("Property7 expected 0 fields")
 		}
 	}
+
+	en := structs["Root"].Fields["EnumProperty"].Enum
+
+	check := []string{"value1", "value2", "1", "2"}
+	for _, e := range en {
+		if !slices.ContainsFunc(check, func(i string) bool {
+			return strconv.Quote(i) == e
+		}) {
+			t.Errorf("Expected enum value %s", e)
+		}
+
+	}
+
+	// test the enum property
 }
 
 func RootWithArrayReferences(t *testing.T) {
@@ -175,15 +270,19 @@ func RootWithArrayReferences(t *testing.T) {
 		t.Errorf("Expected 3 results, but got %d results", len(structs))
 	}
 
-	testField(structs["Root"].Fields["Property1"], "property1", "Property1", "string", false, t)
-	testField(structs["Root"].Fields["Property2"], "property2", "Property2", "[]*Address", true, t)
-	testField(structs["Root"].Fields["Property3"], "property3", "Property3", "[]map[string]int", false, t)
-	testField(structs["Root"].Fields["Property4"], "property4", "Property4", "[][]*Inner", false, t)
+	testField(structs["Root"].Fields["Property1"], "property1", "Property1", "string", false, "", t)
+	testField(structs["Root"].Fields["Property2"], "property2", "Property2", "[]*Address", true, "", t)
+	testField(structs["Root"].Fields["Property3"], "property3", "Property3", "[]map[string]int", false, "", t)
+	testField(structs["Root"].Fields["Property4"], "property4", "Property4", "[][]*Inner", false, "", t)
 }
 
-func testField(actual transpiler.Field, expectedJSONName string, expectedName string, expectedType string, expectedToBeRequired bool, t *testing.T) {
+func testField(actual transpiler.Field, expectedJSONName string, expectedName string, expectedType string, expectedToBeRequired bool, expectedTitle string, t *testing.T) {
 	if actual.JSONName != expectedJSONName {
 		t.Errorf("JSONName - expected \"%s\", got \"%s\"", expectedJSONName, actual.JSONName)
+	}
+
+	if actual.Title != expectedTitle {
+		t.Errorf("Title - expected \"%s\", got \"%s\"", expectedTitle, actual.Title)
 	}
 
 	if actual.Name != expectedName {
@@ -440,50 +539,6 @@ func TestNestedArrayGeneration(t *testing.T) {
 
 	if _, ok := cityStruct.Fields["Country"]; !ok {
 		t.Errorf("Expected to find the Country field on the City struct, but didn't. The struct is %+v", cityStruct)
-	}
-}
-
-func TestMultipleSchemaStructGeneration(t *testing.T) {
-	root1 := &jsonschema.Schema{
-		Title: "Root1Element",
-		ID:    "http://example.com/schema/root1",
-		Properties: map[string]*jsonschema.Schema{
-			"property1": {Reference: "root2#/definitions/address"},
-		},
-	}
-
-	root2 := &jsonschema.Schema{
-		Title: "Root2Element",
-		ID:    "http://example.com/schema/root2",
-		Properties: map[string]*jsonschema.Schema{
-			"property1": {Reference: "#/definitions/address"},
-		},
-		Definitions: map[string]*jsonschema.Schema{
-			"address": {
-				Properties: map[string]*jsonschema.Schema{
-					"address1": {TypeValue: "string"},
-					"zip":      {TypeValue: "number"},
-				},
-			},
-			"person": {
-				Properties: map[string]*jsonschema.Schema{
-					"name": {TypeValue: "string"},
-					"age":  {TypeValue: "number"},
-				},
-			},
-		},
-	}
-
-	root1.Init()
-	root2.Init()
-
-	results, err := transpiler.Transpile(root1, root2)
-	if err != nil {
-		t.Error("Failed to create structs: ", err)
-	}
-
-	if len(results) != 3 {
-		t.Errorf("3 results should have been created, 2 root types and an address, but got %v", getStructNamesFromMap(results))
 	}
 }
 

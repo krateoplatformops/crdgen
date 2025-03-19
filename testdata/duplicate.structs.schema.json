@@ -1,0 +1,45 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "properties": {
+        "simple": {
+            "type": "string"
+        },
+        "struct1": {
+            "properties": {
+            "field1": {
+                "type": "object",
+                "properties": {
+                    "dupf": {
+                        "type": "object",
+                        "properties": {
+                            "dupf1": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                }
+            }
+            },
+            "type": "object"
+        },
+        "struct2": {
+            "properties": {
+            "field1": {
+                "type": "object",
+                "properties": {
+                    "dupf": {
+                        "type": "object",
+                        "properties": {
+                            "dupf2": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+            },
+            "type": "object"
+        }
+    }
+
+  }

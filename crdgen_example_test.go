@@ -14,6 +14,35 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+func TestDuplicateStructs(t *testing.T) {
+	os.Setenv("CRDGEN_CLEAN_WORKDIR", "FALSE")
+	opts := crdgen.Options{
+		//Verbose: true,
+		Managed: true,
+		WorkDir: "xapp",
+		GVK: schema.GroupVersionKind{
+			Group:   "example.org",
+			Version: "v1alpha1",
+			Kind:    "Xapp",
+		},
+		SpecJsonSchemaGetter: &fileJsonSchemaGetter{"./testdata/duplicate.structs.schema.json"},
+		//StatusJsonSchemaGetter: &fileJsonSchemaGetter{"./testdata/hello.status.schema.json"},
+	}
+
+	res := crdgen.Generate(context.TODO(), opts)
+	if res.Err != nil {
+		t.Fatal(res.Err)
+	}
+
+	fmt.Println(res.WorkDir)
+	fmt.Println()
+
+	//fmt.Println("digest: ", res.Digest)
+	//fmt.Println()
+
+	fmt.Println(string(res.Manifest))
+}
+
 func TestExample(t *testing.T) {
 	//os.Setenv("CRDGEN_CLEAN_WORKDIR", "FALSE")
 	opts := crdgen.Options{
