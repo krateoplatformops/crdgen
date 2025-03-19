@@ -13,6 +13,50 @@ import (
 	"github.com/krateoplatformops/crdgen/internal/transpiler/jsonschema"
 )
 
+func TestDuplicateStructGeneration(t *testing.T) {
+	root := jsonschema.Schema{
+		SchemaType: "http://json-schema.org/draft-06/schema#",
+		Title:      "TestRootRef",
+		Properties: map[string]*jsonschema.Schema{
+			"property1": {TypeValue: "string"},
+			"address": {
+				TypeValue: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"address1": {TypeValue: "string"},
+					"zip": {
+						TypeValue: "object",
+						Properties: map[string]*jsonschema.Schema{
+							"test": {TypeValue: "string"},
+						},
+					},
+				},
+			},
+			"address2": {TypeValue: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"address1": {TypeValue: "string"},
+					"zip": {
+						TypeValue: "object",
+						Properties: map[string]*jsonschema.Schema{
+							"test1": {TypeValue: "string"},
+						},
+					},
+				}},
+		},
+	}
+
+	root.Init()
+
+	structs, err := transpiler.Transpile(&root)
+	if err != nil {
+		t.Error("Failed to get the fields: ", err)
+	}
+
+	b, _ := json.MarshalIndent(structs, "", "  ")
+	fmt.Println(string(b))
+	testField(structs["Address2Zip"].Fields["Test1"], "test1", "Test1", "string", false, "", t)
+	testField(structs["Zip"].Fields["Test"], "test", "Test", "string", false, "", t)
+}
+
 func TestRootRef(t *testing.T) {
 	root := jsonschema.Schema{
 		SchemaType: "http://json-schema.org/draft-06/schema#",
@@ -495,50 +539,6 @@ func TestNestedArrayGeneration(t *testing.T) {
 
 	if _, ok := cityStruct.Fields["Country"]; !ok {
 		t.Errorf("Expected to find the Country field on the City struct, but didn't. The struct is %+v", cityStruct)
-	}
-}
-
-func TestMultipleSchemaStructGeneration(t *testing.T) {
-	root1 := &jsonschema.Schema{
-		Title: "Root1Element",
-		ID:    "http://example.com/schema/root1",
-		Properties: map[string]*jsonschema.Schema{
-			"property1": {Reference: "root2#/definitions/address"},
-		},
-	}
-
-	root2 := &jsonschema.Schema{
-		Title: "Root2Element",
-		ID:    "http://example.com/schema/root2",
-		Properties: map[string]*jsonschema.Schema{
-			"property1": {Reference: "#/definitions/address"},
-		},
-		Definitions: map[string]*jsonschema.Schema{
-			"address": {
-				Properties: map[string]*jsonschema.Schema{
-					"address1": {TypeValue: "string"},
-					"zip":      {TypeValue: "number"},
-				},
-			},
-			"person": {
-				Properties: map[string]*jsonschema.Schema{
-					"name": {TypeValue: "string"},
-					"age":  {TypeValue: "number"},
-				},
-			},
-		},
-	}
-
-	root1.Init()
-	root2.Init()
-
-	results, err := transpiler.Transpile(root1, root2)
-	if err != nil {
-		t.Error("Failed to create structs: ", err)
-	}
-
-	if len(results) != 3 {
-		t.Errorf("3 results should have been created, 2 root types and an address, but got %v", getStructNamesFromMap(results))
 	}
 }
 

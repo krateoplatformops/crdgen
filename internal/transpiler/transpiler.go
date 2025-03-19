@@ -3,6 +3,7 @@ package transpiler
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 
@@ -325,6 +326,27 @@ func (g *transpiler) processObject(name string, schema *jsonschema.Schema) (typ 
 			strct.AdditionalType = "false"
 		}
 	}
+	if _, present := g.Structs[strct.Name]; present {
+		parentName := g.getSchemaName("", schema.Parent)
+
+		generatedName := strutil.ToGolangName(parentName + strct.Name)
+
+		if _, ok := g.Structs[generatedName]; ok {
+			// if case also in this case there is a collision, we need to generate a new name
+			// to avoid conflicts
+			chartset := "abcdefghijklmnopqrstuvwxyz"
+
+			retry := 0
+			for present := false; present || retry < 5; _, present = g.Structs[generatedName] {
+				// generate a new name
+				generatedName = strutil.ToGolangName(parentName + strct.Name + string(chartset[rand.Intn(len(chartset))]))
+				retry++
+			}
+		}
+		g.Structs[generatedName] = strct
+		return "*" + generatedName, nil
+	}
+
 	g.Structs[strct.Name] = strct
 	// objects are always a pointer
 	return getPrimitiveTypeName("object", name, true)
