@@ -178,6 +178,11 @@ func renderField(el transpiler.Field) jen.Code {
 		res.Add(jen.Comment(cmt).Line())
 	}
 
+	if len(el.Title) > 0 {
+		cmt := fmt.Sprintf("title: %s", el.Title)
+		res.Add(jen.Comment(cmt).Line())
+	}
+
 	if val := el.Default; val != nil {
 		res.Add(jen.Comment(defValCmt(el.Type, val)).Line())
 	}

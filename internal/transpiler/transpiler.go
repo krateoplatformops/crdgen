@@ -93,6 +93,11 @@ func (g *transpiler) createField(name, rootType string, schema *jsonschema.Schem
 		f.Default = schema.Default
 	}
 
+	if schema.Title != "" {
+		fmt.Printf("title: %s\n", schema.Title)
+		f.Title = schema.Title
+	}
+
 	if schema.Minimum != nil {
 		f.Minimum = ptr.To(*schema.Minimum)
 	}
