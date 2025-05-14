@@ -94,7 +94,6 @@ func (g *transpiler) createField(name, rootType string, schema *jsonschema.Schem
 	}
 
 	if schema.Title != "" {
-		fmt.Printf("title: %s\n", schema.Title)
 		f.Title = schema.Title
 	}
 
