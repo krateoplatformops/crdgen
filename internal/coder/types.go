@@ -179,7 +179,7 @@ func renderField(el transpiler.Field) jen.Code {
 	}
 
 	if len(el.Title) > 0 {
-		cmt := fmt.Sprintf("title: %s", el.Title)
+		cmt := fmt.Sprintf("+kubebuilder:title=%s", el.Title)
 		res.Add(jen.Comment(cmt).Line())
 	}
 
