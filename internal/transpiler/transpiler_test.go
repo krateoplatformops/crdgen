@@ -574,8 +574,9 @@ func TestNestedArrayGeneration(t *testing.T) {
 	if !ok {
 		t.Errorf("Expected to find the Cities field on the FavouriteBars, but didn't. The struct is %+v", fbStruct)
 	}
-	if f.Type != "[]*CitiesItems" {
-		t.Errorf("Expected to find that the Cities array was of type *City, but it was of %s", f.Type)
+
+	if f.Type != "[]*CitiesItem" {
+		t.Errorf("Expected to find that the Cities array was of type []*CitiesItem, but it was of %s", f.Type)
 	}
 
 	f, ok = fbStruct.Fields["Tags"]
@@ -587,7 +588,7 @@ func TestNestedArrayGeneration(t *testing.T) {
 		t.Errorf("Expected to find that the Tags array was of type string, but it was of %s", f.Type)
 	}
 
-	cityStruct, ok := results["CitiesItems"]
+	cityStruct, ok := results["CitiesItem"]
 	if !ok {
 		t.Error("City struct was not found.")
 	}
