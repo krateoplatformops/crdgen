@@ -119,6 +119,15 @@ func (g *transpiler) createField(name, rootType string, schema *jsonschema.Schem
 		}
 	}
 
+	if schema.TypeValue == "array" && schema.Items != nil && schema.Items.Enum != nil {
+		f.Enum = strslice(schema.Items.Enum)
+		if ty, multiple := schema.Items.Type(); !multiple && ty == "string" {
+			for i, e := range f.Enum {
+				f.Enum[i] = strconv.Quote(e)
+			}
+		}
+	}
+
 	if schema.Pattern != nil {
 		f.Pattern = ptr.To(*schema.Pattern)
 	}
@@ -227,29 +236,42 @@ func (g *transpiler) processSchema(schemaName string, schema *jsonschema.Schema)
 	return getPrimitiveTypeName(schemaType, "", false)
 }
 
-// name: name of this array, usually the js key
-// schema: items element
-func (g *transpiler) processArray(name string, schema *jsonschema.Schema) (typeStr string, err error) {
-	if schema.Items != nil {
-		// subType: fallback name in case this array contains inline object without a title
-		subName := g.getSchemaName(name+"Items", schema.Items)
-		subTyp, err := g.processSchema(subName, schema.Items)
-		if err != nil {
-			return "", err
-		}
-		finalType, err := getPrimitiveTypeName("array", subTyp, true)
-		if err != nil {
-			return "", err
-		}
-		// only alias root arrays
-		if schema.Parent == nil {
-			f := g.createField(name, finalType, schema)
-			f.Required = contains(schema.Required, name)
-			g.Aliases[name] = f
-		}
-		return finalType, nil
+func (g *transpiler) processArray(name string, schema *jsonschema.Schema) (string, error) {
+	if schema.Items == nil {
+		return "[]any", nil
 	}
-	return "[]any", nil
+
+	item := schema.Items
+	subName := g.getSchemaName(name+"Item", item)
+
+	subType, err := g.processSchema(subName, item)
+	if err != nil {
+		return "", err
+	}
+
+	finalType := "[]" + subType
+
+	f := Field{
+		Name:        strutil.ToGolangName(name),
+		JSONName:    name,
+		Type:        finalType,
+		Description: schema.Description,
+		Title:       schema.Title,
+		Required:    contains(schema.Required, name),
+	}
+
+	if item.Enum != nil {
+		f.Enum = strslice(item.Enum)
+		if ty, multiple := item.Type(); !multiple && ty == "string" {
+			for i, e := range f.Enum {
+				f.Enum[i] = strconv.Quote(e)
+			}
+		}
+	}
+
+	g.Aliases[f.Name] = f
+
+	return finalType, nil
 }
 
 // name: name of the struct (calculated by caller)

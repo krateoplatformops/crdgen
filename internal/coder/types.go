@@ -17,12 +17,10 @@ import (
 )
 
 const (
-	pkgCommon           = "github.com/krateoplatformops/provider-runtime/apis/common/v1"
-	pkgCommonAlias      = "rtv1"
-	pkgMeta             = "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgMetaAlias        = "metav1"
-	pkgSpecCommentFmt   = "%s defines the desired state of %s"
-	pkgStatusCommentFmt = "%s defines the observed state of %s"
+	pkgCommon      = "github.com/krateoplatformops/provider-runtime/apis/common/v1"
+	pkgCommonAlias = "rtv1"
+	pkgMeta        = "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pkgMetaAlias   = "metav1"
 )
 
 func CreateTypesDotGo(workdir string, res *Resource) error {
@@ -91,7 +89,9 @@ func CreateTypesDotGo(workdir string, res *Resource) error {
 
 	if hasStatus {
 		g.Add(jen.Comment(`+kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"`))
-		g.Add(jen.Comment(`+kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"`).Line())
+		if res.Managed {
+			g.Add(jen.Comment(`+kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"`).Line())
+		}
 	}
 
 	g.Add(jen.Line())
