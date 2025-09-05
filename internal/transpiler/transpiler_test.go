@@ -508,7 +508,7 @@ func TestArrayGeneration(t *testing.T) {
 		t.Errorf("Expected one struct should have been generated, but %d have been generated.", len(results))
 	}
 
-	artistStruct, ok := results["RootItems"]
+	artistStruct, ok := results["RootItem"]
 	if !ok {
 		t.Errorf("Expected Name to be Artist, that wasn't found, but the struct contains \"%+v\"", results)
 	}
