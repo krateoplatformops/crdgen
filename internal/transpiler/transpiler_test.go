@@ -13,6 +13,65 @@ import (
 	"github.com/krateoplatformops/crdgen/internal/transpiler/jsonschema"
 )
 
+func TestArrayEnumFieldWithHelper(t *testing.T) {
+	// Creiamo lo schema in memoria
+	root := jsonschema.Schema{
+		SchemaType: "http://json-schema.org/draft-04/schema#",
+		Title:      "TestRootEnum",
+		Properties: map[string]*jsonschema.Schema{
+			"maybeAllowedResources": {
+				Description: "the list of resources that are allowed to be children of this widget or referenced by it",
+				TypeValue:   "array",
+				Items: &jsonschema.Schema{
+					TypeValue: "string",
+					Enum:      []any{"pages"},
+				},
+			},
+		},
+	}
+
+	root.Init()
+
+	// Trasformiamo lo schema in Struct Go
+	structs, err := transpiler.Transpile(&root)
+	if err != nil {
+		t.Fatal("Failed to transpile schema: ", err)
+	}
+
+	// Verifica che Root esista
+	rootStruct, ok := structs["Root"]
+	if !ok {
+		t.Fatal("Root struct not found")
+	}
+
+	// Verifica il campo maybeAllowedResources
+	field, ok := rootStruct.Fields["MaybeAllowedResources"]
+	if !ok {
+		t.Fatal("Field MaybeAllowedResources not found")
+	}
+
+	// Tipo dell'array
+	if field.Type != "[]string" {
+		t.Errorf("Expected type []string, got %s", field.Type)
+	}
+
+	// Enum degli elementi
+	expectedEnum := []string{"\"pages\""}
+	if len(field.Enum) != len(expectedEnum) {
+		t.Errorf("Expected enum %v, got %v", expectedEnum, field.Enum)
+	} else {
+		for i := range expectedEnum {
+			if field.Enum[i] != expectedEnum[i] {
+				t.Errorf("Enum mismatch at index %d: expected %s, got %s", i, expectedEnum[i], field.Enum[i])
+			}
+		}
+	}
+
+	// Stampa opzionale per debug
+	b, _ := json.MarshalIndent(structs, "", "  ")
+	t.Logf("Generated structs: %s", string(b))
+}
+
 func TestDuplicateStructGeneration(t *testing.T) {
 	root := jsonschema.Schema{
 		SchemaType: "http://json-schema.org/draft-06/schema#",

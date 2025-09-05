@@ -16,6 +16,7 @@ import (
 
 func TestDuplicateStructs(t *testing.T) {
 	os.Setenv("CRDGEN_CLEAN_WORKDIR", "FALSE")
+
 	opts := crdgen.Options{
 		//Verbose: true,
 		Managed: true,
@@ -72,6 +73,39 @@ func TestExample(t *testing.T) {
 	fmt.Println(string(res.Manifest))
 }
 
+func TestArrayEnums(t *testing.T) {
+	//os.Setenv("CRDGEN_CLEAN_WORKDIR", "FALSE")
+	const (
+		preserveUnknownFields = `{"type": "object", "additionalProperties": true,"x-kubernetes-preserve-unknown-fields": true}`
+	)
+
+	opts := crdgen.Options{
+		//Verbose: true,
+		Managed: false,
+		WorkDir: "xapp",
+		GVK: schema.GroupVersionKind{
+			Group:   "example.org",
+			Version: "v1alpha1",
+			Kind:    "Xapp",
+		},
+		SpecJsonSchemaGetter:   &fileJsonSchemaGetter{"./testdata/array.enums.schema.json"},
+		StatusJsonSchemaGetter: &bytesJsonSchemaGetter{data: []byte(preserveUnknownFields)},
+	}
+
+	res := crdgen.Generate(context.TODO(), opts)
+	if res.Err != nil {
+		t.Fatal(res.Err)
+	}
+
+	fmt.Println(res.WorkDir)
+	fmt.Println()
+
+	//fmt.Println("digest: ", res.Digest)
+	//fmt.Println()
+
+	fmt.Println(string(res.Manifest))
+}
+
 var _ crdgen.JsonSchemaGetter = (*fileJsonSchemaGetter)(nil)
 
 type fileJsonSchemaGetter struct {
@@ -86,4 +120,14 @@ func (f *fileJsonSchemaGetter) Get() ([]byte, error) {
 	defer fin.Close()
 
 	return io.ReadAll(fin)
+}
+
+var _ crdgen.JsonSchemaGetter = (*bytesJsonSchemaGetter)(nil)
+
+type bytesJsonSchemaGetter struct {
+	data []byte
+}
+
+func (sg *bytesJsonSchemaGetter) Get() ([]byte, error) {
+	return sg.data, nil
 }
