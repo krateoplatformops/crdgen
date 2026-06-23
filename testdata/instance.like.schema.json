@@ -1,0 +1,44 @@
+{
+  "type": "object",
+  "properties": {
+    "memory": { "type": "integer", "format": "int64", "description": "RAM in bytes" },
+    "ncpus": { "type": "integer", "format": "int32", "description": "vCPUs" },
+    "external_ips": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["ephemeral","floating"] },
+          "pool_selector": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["explicit","auto"] }
+            }
+          }
+        }
+      }
+    },
+    "disks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["create","attach"] },
+          "size": { "type": "integer", "format": "int64" },
+          "disk_backend": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["distributed","local"] },
+              "disk_source": {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "enum": ["blank","snapshot","image"] }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

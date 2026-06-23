@@ -56,6 +56,13 @@ type Schema struct {
 	MultipleOf *float64 `json:"multipleOf,omitempty"`
 	Pattern    *string  `json:"pattern,omitempty"`
 
+	// Format is the JSON Schema "format" keyword (e.g. "int32", "int64",
+	// "float", "double"). It is used to select the correct Go type width so the
+	// generated CRD preserves the author's intent — in particular "int64" must
+	// not be downgraded to int32.
+	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.7.3
+	Format string `json:"format,omitempty"`
+
 	// Examples ...
 	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.4
 	Examples []any

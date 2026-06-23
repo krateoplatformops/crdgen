@@ -233,7 +233,7 @@ func (g *transpiler) processSchema(schemaName string, schema *jsonschema.Schema)
 		return g.processArray(schemaName, schema)
 	}
 
-	return getPrimitiveTypeName(schemaType, "", false)
+	return getPrimitiveTypeName(schemaType, "", false, schema.Format)
 }
 
 func (g *transpiler) processArray(name string, schema *jsonschema.Schema) (string, error) {
@@ -375,7 +375,7 @@ func (g *transpiler) processObject(name string, schema *jsonschema.Schema) (typ 
 
 	g.Structs[strct.Name] = strct
 	// objects are always a pointer
-	return getPrimitiveTypeName("object", name, true)
+	return getPrimitiveTypeName("object", name, true, "")
 }
 
 // return a name for this (sub-)schema.
@@ -396,7 +396,7 @@ func (g *transpiler) getSchemaName(keyName string, schema *jsonschema.Schema) st
 	return fmt.Sprintf("Anonymous%d", g.anonCount)
 }
 
-func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name string, err error) {
+func getPrimitiveTypeName(schemaType string, subType string, pointer bool, format string) (name string, err error) {
 	switch schemaType {
 	case "array":
 		if subType == "" {
@@ -406,9 +406,26 @@ func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name
 	case "boolean":
 		return "bool", nil
 	case "integer":
-		return "int", nil
+		// Honour the JSON Schema "format" so int64 fields are not silently
+		// downgraded to int32 (which would make the kube-apiserver reject any
+		// value above 2^31-1, e.g. byte sizes such as disk size or memory).
+		// An unspecified/unknown format keeps the historical behaviour ("int").
+		switch format {
+		case "int64":
+			return "int64", nil
+		case "int32":
+			return "int32", nil
+		default:
+			return "int", nil
+		}
 	case "number":
-		return "float64", nil
+		// double maps to float64, float to float32; anything else keeps float64.
+		switch format {
+		case "float":
+			return "float32", nil
+		default:
+			return "float64", nil
+		}
 	case "null":
 		return "nil", nil
 	case "object":
